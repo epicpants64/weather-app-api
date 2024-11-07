@@ -1,0 +1,66 @@
+services:
+  cache:
+    image: redis:6.2-alpine
+    restart: no
+    ports:
+      - 6379:6379
+    command: redis-server --save 20 1 --loglevel warning
+    volumes:
+      - cache:/data
+  server:
+    build: ./
+    environment:
+      USER_UID: 1000
+      USER_GID: 1000
+      DB_URL: mongodb://root:example@mongo:27017/
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+      LOG_NAME: 'weather-api'
+      LOG_LEVEL: debug
+      DB_TIMEOUT: 60000
+      SWAGGER_SCHEMA_TITLE: 'Weather App API'
+      SWAGGER_SCHEMA_VERSION: '1.0.0'
+      SWAGGER_SCHEMA_DESCRIPTION: 'Weather App API'
+      SWAGGER_SCHEMA_SERVERS: ''
+      SWAGGER_SCHEMA_TAGS: 'location,weather,users'
+      ENABLE_SWAGGER: true
+      LOCATION_SERVICE_API_KEY: ''
+      LOCATION_SERVICE_BASE_URL: 'http://api.openweathermap.org/geo/1.0/'
+      FORECAST_SERVICE_API_KEY: ''
+      FORECAST_SERVICE_BASE_URL: 'https://api.openweathermap.org/data/3.0/onecall'
+      REDIS_HOST: cache
+      REDIS_PORT: 6379
+      AUTH_SECRET_KEY: ''
+    restart: no
+    ports:
+      - 3000:3000
+    volumes:
+      - ./public:/APP/public
+    depends_on:
+      - cache
+      - mongo
+
+  mongo:
+    image: mongo
+    restart: no
+    ports:
+      - 27017:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+
+  mongo-express:
+    image: mongo-express
+    restart: no
+    ports:
+      - 8081:8081
+    depends_on:
+      - mongo
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: example
+      ME_CONFIG_MONGODB_URL: mongodb://root:example@mongo:27017/
+      ME_CONFIG_BASICAUTH: false
+volumes:
+  cache:
+    driver: local
